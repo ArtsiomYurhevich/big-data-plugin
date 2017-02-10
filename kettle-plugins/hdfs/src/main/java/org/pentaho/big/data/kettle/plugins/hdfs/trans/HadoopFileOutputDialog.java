@@ -1446,11 +1446,7 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
     }
 
     if ( input.getFileName() != null ) {
-      String fileName = input.getFileName();
-      fileName = getUrlPath( fileName );
-      if ( fileName != null ) {
-        wFilename.setText( fileName );
-      }
+        wFilename.setText( input.getFileName() );
     }
 
     wDoNotOpenNewFileInit.setSelection( input.isDoNotOpenNewFileInit() );
@@ -1557,15 +1553,9 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
     String ncName = ( (HadoopFileOutputMeta) tfoi ).getSourceConfigurationName();
     String fileName = wFilename.getText();
 
-    NamedCluster c = getMetaStore() == null ? null
-      : namedClusterService.getNamedClusterByName( ncName, getMetaStore() );
-    if ( c != null ) {
-      fileName = c.processURLsubstitution( fileName, getMetaStore(), variables );
-    }
-
     tfoi.setFileName( fileName );
     tfoi.setDoNotOpenNewFileInit( wDoNotOpenNewFileInit.getSelection() );
-    tfoi.setCreateParentFolder( wCreateParentFolder.getSelection() );
+     tfoi.setCreateParentFolder( wCreateParentFolder.getSelection() );
     tfoi.setFileFormat( TextFileOutputMeta.formatMapperLineTerminator[wFormat.getSelectionIndex()] );
     tfoi.setFileCompression( wCompression.getText() );
     tfoi.setEncoding( wEncoding.getText() );
