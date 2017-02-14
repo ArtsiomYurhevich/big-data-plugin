@@ -2,7 +2,7 @@
  *
  * Pentaho Big Data
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -25,6 +25,7 @@ package org.pentaho.big.data.kettle.plugins.hdfs.trans;
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.provider.url.UrlFileName;
 import org.apache.commons.vfs2.provider.url.UrlFileNameParser;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -83,6 +84,7 @@ import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.di.ui.trans.step.TableItemInsertListener;
+import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.runtime.test.RuntimeTester;
 import org.pentaho.runtime.test.action.RuntimeTestActionService;
 import org.pentaho.vfs.ui.CustomVfsUiPanel;
@@ -1273,9 +1275,9 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
             if ( extension != null && filename.endsWith( "." + extension ) ) {
               // The extension is filled in and matches the end
               // of the selected file => Strip off the extension.
-              wFilename.setText( getUrlPath( filename.substring( 0, filename.length() - ( extension.length() + 1 ) ) ) );
+              wFilename.setText( getUrlPath( filename.substring( 0, filename.length() - ( extension.length() + 1 ) ), namedCluster, getMetaStore(), true ) );
             } else {
-              wFilename.setText( getUrlPath( filename ) );
+              wFilename.setText( getUrlPath( filename, namedCluster, getMetaStore(), true ) );
             }
           }
         } catch ( KettleFileException ex ) {
@@ -1447,7 +1449,7 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
 
     if ( input.getFileName() != null ) {
       String fileName = input.getFileName();
-      fileName = getUrlPath( fileName );
+      fileName = getUrlPath( fileName, namedClusterService.getNamedClusterByName( ncName, getMetaStore() ), getMetaStore(), false );
       if ( fileName != null ) {
         wFilename.setText( fileName );
       }
@@ -1560,7 +1562,7 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
     NamedCluster c = getMetaStore() == null ? null
       : namedClusterService.getNamedClusterByName( ncName, getMetaStore() );
     if ( c != null ) {
-      fileName = c.processURLsubstitution( fileName, getMetaStore(), variables );
+      fileName = getRootURL( c, getMetaStore(), false ) + fileName;
     }
 
     tfoi.setFileName( fileName );
@@ -1714,20 +1716,59 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
     wCreateParentFolder.setEnabled( true );
   }
 
-  public static String getUrlPath( String incomingURL ) {
+  public static String getUrlPath( String incomingURL, NamedCluster cluster, IMetaStore metaStore, boolean noVariableURL ) {
     String path = incomingURL;
     try {
-      String noVariablesURL = incomingURL.replaceAll( "[${}]", "/" );
-      UrlFileNameParser parser = new UrlFileNameParser();
-      FileName fileName = parser.parseUri( null, null, noVariablesURL );
-      String root = fileName.getRootURI();
-      if ( noVariablesURL.startsWith( root ) ) {
+      String root = getRootURL( cluster, metaStore, noVariableURL );
+      if ( incomingURL.startsWith( root ) ) {
         path = incomingURL.substring( root.length() - 1 );
       }
-    } catch ( FileSystemException e ) {
+    } catch ( Exception e ) {
       path = null;
     }
     return path;
+  }
+
+  public static String getRootURL( NamedCluster namedCluster, IMetaStore metaStore, boolean noVariableUrl ) {
+
+    String rootURL = null;
+
+    if ( !noVariableUrl ) {
+      String ncHostname = namedCluster.getHdfsHost() != null ? namedCluster.getHdfsHost().trim() : "";
+      String ncPort = namedCluster.getHdfsPort() != null ? namedCluster.getHdfsPort().trim() : "";
+      String ncUsername = namedCluster.getHdfsUsername() != null ? namedCluster.getHdfsUsername().trim() : "";
+      String ncPassword = namedCluster.getHdfsPassword() != null ? namedCluster.getHdfsPassword().trim() : "";
+      if ( ncPort.isEmpty() ) {
+        ncPort = "-1";
+      }
+
+      String scheme = namedCluster.isMapr() ? "maprfs" : "hdfs";
+
+      try {
+        UrlFileName file =
+          new UrlFileName( scheme, ncHostname, Integer.parseInt( ncPort ), -1, ncUsername, ncPassword, null, null,
+            null );
+        rootURL = file.getURI();
+        if ( rootURL.endsWith( "/" ) ) {
+          rootURL = rootURL.substring( 0, rootURL.lastIndexOf( "/" ) );
+        }
+
+      } catch ( Exception e ) {
+        rootURL = null;
+      }
+
+    } else {
+      String noVariablesURL = namedCluster.processURLsubstitution( "/", metaStore, variables );
+      try {
+        UrlFileNameParser parser = new UrlFileNameParser();
+        FileName fileName = parser.parseUri( null, null, noVariablesURL );
+        rootURL = fileName.getRootURI();
+      } catch ( FileSystemException ex ) {
+        rootURL = null;
+      }
+    }
+
+    return rootURL;
   }
 
   private void showMessageAndLog( String title, String message, String messageToLog ) {
