@@ -1434,6 +1434,7 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
     }
   }
 
+
   /**
    * Copy information from the meta-data input to the dialog fields.
    */
@@ -1447,7 +1448,6 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
 
     if ( input.getFileName() != null ) {
       String fileName = input.getFileName();
-      fileName = getUrlPath( fileName );
       if ( fileName != null ) {
         wFilename.setText( fileName );
       }
@@ -1556,12 +1556,6 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
   private void getInfo( TextFileOutputMeta tfoi ) {
     String ncName = ( (HadoopFileOutputMeta) tfoi ).getSourceConfigurationName();
     String fileName = wFilename.getText();
-
-    NamedCluster c = getMetaStore() == null ? null
-      : namedClusterService.getNamedClusterByName( ncName, getMetaStore() );
-    if ( c != null ) {
-      fileName = c.processURLsubstitution( fileName, getMetaStore(), variables );
-    }
 
     tfoi.setFileName( fileName );
     tfoi.setDoNotOpenNewFileInit( wDoNotOpenNewFileInit.getSelection() );
@@ -1717,7 +1711,8 @@ public class HadoopFileOutputDialog extends BaseStepDialog implements StepDialog
   public static String getUrlPath( String incomingURL ) {
     String path = incomingURL;
     try {
-      String noVariablesURL = incomingURL.replaceAll( "[${}]", "/" );
+      String noVariablesURL1 = incomingURL.replaceAll( "\\$\\{", "/" );
+      String noVariablesURL = noVariablesURL1.replaceAll( "[${}]", "/" );
       UrlFileNameParser parser = new UrlFileNameParser();
       FileName fileName = parser.parseUri( null, null, noVariablesURL );
       String root = fileName.getRootURI();

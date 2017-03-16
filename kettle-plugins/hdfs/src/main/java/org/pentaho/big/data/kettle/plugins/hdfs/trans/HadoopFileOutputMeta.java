@@ -22,8 +22,10 @@
 
 package org.pentaho.big.data.kettle.plugins.hdfs.trans;
 
+import org.apache.commons.vfs2.provider.url.UrlFileName;
 import org.pentaho.big.data.api.cluster.NamedCluster;
 import org.pentaho.big.data.api.cluster.NamedClusterService;
+import org.pentaho.big.data.kettle.plugins.hdfs.util.NamedClusterUtil;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.injection.InjectionSupported;
@@ -56,6 +58,7 @@ public class HadoopFileOutputMeta extends TextFileOutputMeta {
   private final NamedClusterService namedClusterService;
   private final RuntimeTestActionService runtimeTestActionService;
   private final RuntimeTester runtimeTester;
+  private NamedCluster storedCluster;
 
   public HadoopFileOutputMeta( NamedClusterService namedClusterService,
                                RuntimeTestActionService runtimeTestActionService, RuntimeTester runtimeTester ) {
@@ -97,10 +100,15 @@ public class HadoopFileOutputMeta extends TextFileOutputMeta {
   protected String loadSource( Node stepnode, IMetaStore metastore ) {
     String url = XMLHandler.getTagValue( stepnode, "file", "name" );
     sourceConfigurationName = XMLHandler.getTagValue( stepnode, "file", SOURCE_CONFIGURATION_NAME );
-
-    return getProcessedUrl( metastore, url );
+    storedCluster = NamedClusterUtil.loadStoredClusterConfig( namedClusterService, null, null, stepnode, log );
+    if ( checkIfFullPath( url ) ) {
+      return getProcessedUrl( metastore, url );
+    } else {
+      return getRootURL( storedCluster ) + url;
+    }
   }
 
+  @Deprecated
   protected String getProcessedUrl( IMetaStore metastore, String url ) {
     if ( url == null ) {
       return null;
@@ -115,20 +123,26 @@ public class HadoopFileOutputMeta extends TextFileOutputMeta {
   protected void saveSource( StringBuilder retVal, String fileName ) {
     retVal.append( "      " ).append( XMLHandler.addTagValue( "name", fileName ) );
     retVal.append( "      " ).append( XMLHandler.addTagValue( SOURCE_CONFIGURATION_NAME, sourceConfigurationName ) );
+    storedCluster = NamedClusterUtil.saveClusterConfig( retVal, sourceConfigurationName, namedClusterService, storedCluster );
   }
 
   // Receiving metaStore because RepositoryProxy.getMetaStore() returns a hard-coded null
   protected String loadSourceRep( Repository rep, ObjectId id_step,  IMetaStore metaStore ) throws KettleException {
     String url = rep.getStepAttributeString( id_step, "file_name" );
     sourceConfigurationName = rep.getStepAttributeString( id_step, SOURCE_CONFIGURATION_NAME );
-
-    return getProcessedUrl( metaStore, url );
+    storedCluster = NamedClusterUtil.loadStoredClusterConfig( namedClusterService, id_step, rep, null, log );
+    if ( checkIfFullPath( url ) ) {
+      return getProcessedUrl( metaStore, url );
+    } else {
+      return getRootURL( storedCluster ) + url;
+    }
   }
 
-  protected void saveSourceRep( Repository rep, ObjectId id_transformation, ObjectId id_step, String fileName )
+  protected void saveSourceRep( Repository rep, ObjectId id_transformation, ObjectId id_step, IMetaStore metaStore, String fileName )
     throws KettleException {
     rep.saveStepAttribute( id_transformation, id_step, "file_name", fileName );
     rep.saveStepAttribute( id_transformation, id_step, SOURCE_CONFIGURATION_NAME, sourceConfigurationName );
+    storedCluster = NamedClusterUtil.saveClusterConfig( sourceConfigurationName, storedCluster, namedClusterService, rep, id_transformation, id_step, metaStore );
   }
 
   public NamedClusterService getNamedClusterService() {
@@ -141,5 +155,55 @@ public class HadoopFileOutputMeta extends TextFileOutputMeta {
 
   public RuntimeTestActionService getRuntimeTestActionService() {
     return runtimeTestActionService;
+  }
+
+  private boolean checkIfFullPath( String url ) {
+    if ( url == null ) {
+      return false;
+    }
+    for ( String scheme : new String[] { "hdfs", "maprfs", "wasb"} ) {
+      if ( url.startsWith( scheme + "://" ) ) {
+        return true;
+      }
+    }
+    return false;
+  }
+   /**
+     * The method returns the root url of the cluster.
+   * @param namedCluster cluster parameters
+   * @return the root url of the cluster.
+    */
+  public static String getRootURL( NamedCluster namedCluster ) {
+
+    String rootURL = null;
+
+    if ( namedCluster == null ) {
+      return null;
+    }
+
+      String ncHostname = namedCluster.getHdfsHost() != null ? namedCluster.getHdfsHost().trim() : "";
+      String ncPort = namedCluster.getHdfsPort() != null ? namedCluster.getHdfsPort().trim() : "";
+      String ncUsername = namedCluster.getHdfsUsername() != null ? namedCluster.getHdfsUsername().trim() : "";
+      String ncPassword = namedCluster.getHdfsPassword() != null ? namedCluster.getHdfsPassword().trim() : "";
+      if ( ncPort.isEmpty() ) {
+        ncPort = "-1";
+      }
+      String scheme = namedCluster.getStorageScheme();
+
+      try {
+        UrlFileName file =
+          new UrlFileName( scheme, ncHostname, Integer.parseInt( ncPort ), -1, ncUsername, ncPassword, null, null,
+            null );
+        rootURL = file.getURI();
+      } catch ( Exception e ) {
+        rootURL = null;
+      }
+
+    if ( rootURL != null ) {
+      if ( rootURL.endsWith( "/" ) ) {
+        rootURL = rootURL.substring( 0, rootURL.lastIndexOf( "/" ) );
+      }
+    }
+    return rootURL;
   }
 }
