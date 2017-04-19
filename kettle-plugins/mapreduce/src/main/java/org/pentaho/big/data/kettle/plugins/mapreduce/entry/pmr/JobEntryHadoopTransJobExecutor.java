@@ -202,8 +202,8 @@ public class JobEntryHadoopTransJobExecutor extends JobEntryBase implements Clon
   public static TransMeta getTransMetaFromRepo( String repositoryDir, String repositoryFile, Repository rep, VariableSpace space  ) throws KettleException {
     if ( space instanceof JobEntryHadoopTransJobExecutor ) {
       CurrentDirectoryResolver r = new CurrentDirectoryResolver();
-      space = r.resolveCurrentDirectory(
-        ObjectLocationSpecificationMethod.REPOSITORY_BY_NAME, space, rep, ( (JobEntryHadoopTransJobExecutor) space ).getParentJob(), null );
+      JobEntryHadoopTransJobExecutor jobEntry = (JobEntryHadoopTransJobExecutor) space;
+      space = r.resolveCurrentDirectory( jobEntry.getParentVariableSpace(), jobEntry.getParentJob().getRepositoryDirectory(), null );
     }
     String repositoryDirS = space.environmentSubstitute( repositoryDir );
     if ( repositoryDirS.isEmpty() ) {

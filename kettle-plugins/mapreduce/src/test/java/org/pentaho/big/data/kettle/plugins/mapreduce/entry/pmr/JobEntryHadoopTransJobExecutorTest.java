@@ -53,50 +53,50 @@ public class JobEntryHadoopTransJobExecutorTest {
     directoryInterface = mock( RepositoryDirectoryInterface.class );
   }
 
-//  @Test
-//  public void testLoadTransMetaLocal() throws Exception {
-//    String testPath = "src/test/resources/testTrans.ktr";
-//    when( space.environmentSubstitute( testPath ) ).thenReturn( testPath );
-//    TransMeta transMeta = JobEntryHadoopTransJobExecutor.loadTransMeta( space, null, testPath, objectId, null, null );
-//    Assert.assertEquals( testPath, transMeta.getFilename() );
-//  }
-//
-//  @Test
-//  public void testLoadTransMetaRepo() throws Exception {
-//    String dir = "/repo/path";
-//    String file = "testTrans";
-//    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
-//    when( space.environmentSubstitute( file ) ).thenReturn( file );
-//    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
-//    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
-//    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, dir + "/" + file, null, null, null );
-//    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
-//  }
-//
-//  //for backward compatibility
-//  @Test
-//  public void testLoadTransMetaRepoReference() throws Exception {
-//    String dir = "/repo/path";
-//    String file = "testTrans";
-//    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
-//    when( space.environmentSubstitute( file ) ).thenReturn( file );
-//    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
-//    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
-//    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, dir + "/" + file, null, null, null );
-//    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
-//  }
-//
-//  // for backward compatibility
-//  @Test
-//  public void testLoadTransMetaRepoDirFile() throws Exception {
-//    String dir = "/repo/path";
-//    String file = "testTrans";
-//    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
-//    when( space.environmentSubstitute( file ) ).thenReturn( file );
-//    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
-//    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
-//    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, null, null, dir, file );
-//    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
-//  }
+  @Test
+  public void testLoadTransMetaLocal() throws Exception {
+    String testPath = "src/test/resources/testTrans.ktr";
+    when( space.environmentSubstitute( testPath ) ).thenReturn( testPath );
+    TransMeta transMeta = JobEntryHadoopTransJobExecutor.loadTransMeta( space, null, testPath, objectId, null, null );
+    Assert.assertEquals( testPath, transMeta.getFilename() );
+  }
+
+  @Test
+  public void testLoadTransMetaRepo() throws Exception {
+    String dir = "/repo/path";
+    String file = "testTrans";
+    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
+    when( space.environmentSubstitute( file ) ).thenReturn( file );
+    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
+    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
+    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, dir + "/" + file, null, null, null );
+    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
+  }
+
+  //for backward compatibility
+  @Test
+  public void testLoadTransMetaRepoReference() throws Exception {
+    String dir = "/repo/path";
+    String file = "testTrans";
+    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
+    when( space.environmentSubstitute( file ) ).thenReturn( file );
+    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
+    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
+    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, dir + "/" + file, null, null, null );
+    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
+  }
+
+  // for backward compatibility
+  @Test
+  public void testLoadTransMetaRepoDirFile() throws Exception {
+    String dir = "/repo/path";
+    String file = "testTrans";
+    when( space.environmentSubstitute( dir ) ).thenReturn( dir );
+    when( space.environmentSubstitute( file ) ).thenReturn( file );
+    when( repository.loadRepositoryDirectoryTree() ).thenReturn( directoryInterface );
+    when( directoryInterface.findDirectory( dir ) ).thenReturn( directoryInterface );
+    JobEntryHadoopTransJobExecutor.loadTransMeta( space, repository, null, null, dir, file );
+    verify( repository ).loadTransformation( file, directoryInterface, null, true, null );
+  }
 
 }
