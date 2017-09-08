@@ -56,6 +56,7 @@ import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.job.entry.JobEntryBase;
 import org.pentaho.di.job.entry.JobEntryInterface;
+import org.pentaho.di.reference.HasRepReferencesInterface;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.repository.RepositoryDirectory;
@@ -86,7 +87,8 @@ import java.util.regex.Pattern;
   categoryDescription = "i18n:org.pentaho.di.job:JobCategory.Category.BigData",
   i18nPackageName = "org.pentaho.di.job.entries.hadooptransjobexecutor",
   documentationUrl = "0L0/0Y0/0L0/Pentaho_MapReduce" )
-public class JobEntryHadoopTransJobExecutor extends JobEntryBase implements Cloneable, JobEntryInterface {
+public class JobEntryHadoopTransJobExecutor extends JobEntryBase implements Cloneable, JobEntryInterface,
+  HasRepReferencesInterface {
   public static final String MAPREDUCE_APPLICATION_CLASSPATH = "mapreduce.application.classpath";
   public static final String DEFAULT_MAPREDUCE_APPLICATION_CLASSPATH =
     "$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*,$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*";
@@ -238,6 +240,41 @@ public class JobEntryHadoopTransJobExecutor extends JobEntryBase implements Clon
 
   public void setHadoopJobName( String hadoopJobName ) {
     this.hadoopJobName = hadoopJobName;
+  }
+
+  @Override public ObjectLocationSpecificationMethod[] getSpecificationMethods() {
+    return new ObjectLocationSpecificationMethod[] {
+      defineSpecificationMethod( mapRepositoryDir, mapRepositoryFile, mapRepositoryReference ),
+      defineSpecificationMethod( combinerRepositoryDir, combinerRepositoryFile, combinerRepositoryReference ),
+      defineSpecificationMethod( reduceRepositoryDir, reduceRepositoryFile, reduceRepositoryReference )
+    };
+  }
+
+  @Override
+  public String[] getDirectories() {
+    return new String[]{
+      mapRepositoryDir != null ? mapRepositoryDir : mapTrans,
+      combinerRepositoryDir != null ? combinerRepositoryDir : combinerTrans,
+      reduceRepositoryDir != null ? reduceRepositoryDir : reduceTrans };
+  }
+
+  @Override
+  public void setDirectories( String[] directory ) {
+    if ( this.mapRepositoryDir != null ) {
+      this.mapRepositoryDir = directory[0];
+    } else {
+      this.mapTrans = directory[0];
+    }
+    if ( this.combinerRepositoryDir != null ) {
+      this.combinerRepositoryDir = directory[1];
+    } else {
+      this.combinerTrans = directory[1];
+    }
+    if ( this.reduceRepositoryDir != null ) {
+      this.reduceRepositoryDir = directory[2];
+    } else {
+      this.reduceTrans = directory[2];
+    }
   }
 
   public String getMapTrans() {
@@ -1274,6 +1311,12 @@ public class JobEntryHadoopTransJobExecutor extends JobEntryBase implements Clon
       || ( !Const.isEmpty( combinerRepositoryDir ) && !Const.isEmpty( combinerRepositoryFile ) );
   }
 
+  ObjectLocationSpecificationMethod defineSpecificationMethod( String repDir, String repFileName, ObjectId reference ) {
+    if ( reference != null ) {
+      return ObjectLocationSpecificationMethod.REPOSITORY_BY_REFERENCE;
+    }
+    return ObjectLocationSpecificationMethod.REPOSITORY_BY_NAME;
+  }
   /**
    * @return The objects referenced in the step, like a a transformation, a job, a mapper, a reducer, a combiner, ...
    */
